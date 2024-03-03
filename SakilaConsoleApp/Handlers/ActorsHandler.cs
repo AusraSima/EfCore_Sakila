@@ -1,16 +1,12 @@
 ﻿using DataAccess.Entities;
 using DataAccess.Repositories;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SakilaConsoleApp.Handlers
 {
     public class ActorsHandler : RepositoriesControl
     {
         private ActorRepository _actorRepository;
+        private FilmRepository _filmRepository;
         public ActorsHandler() : base()
         {
             init();
@@ -18,6 +14,7 @@ namespace SakilaConsoleApp.Handlers
         private async Task init()
         {
             _actorRepository = await actorsRepositoryInit();
+            _filmRepository = await filmsRepositoryInit();
         }
         public async Task HandleAsync()
         {
@@ -47,13 +44,20 @@ namespace SakilaConsoleApp.Handlers
                         await DeleteActor();
                         break;
                     case 6:
+                        await ConnectActorAndFilm();
+                        break;
+                    case 7:
                         goto Exit;
+                        break;
+                    default:
+                        await Console.Out.WriteLineAsync("Invalid option, please select a number from the menu.");
                         break;
                 }
                 continueOrNot = continueInActorsPage();
             }
         Exit:;
         }
+
 
         public static void ActorsPageMenu()
         {
@@ -63,7 +67,8 @@ namespace SakilaConsoleApp.Handlers
             Console.WriteLine("3 - Enter a new actor");
             Console.WriteLine("4 - Update actor's info");
             Console.WriteLine("5 - Delete actor");
-            Console.WriteLine("6 - Exit Actors page");
+            Console.WriteLine("6 - Connect an actor to a film");
+            Console.WriteLine("7 - Exit Actors page");
             Console.WriteLine();
         }
 
@@ -105,9 +110,9 @@ namespace SakilaConsoleApp.Handlers
         public async Task CreateActor()
         {
             await Console.Out.WriteLineAsync("Enter actor's first name: ");
-            string firstName = Console.ReadLine();
+            string firstName = IfTextLengthLessThan256(Console.ReadLine());
             await Console.Out.WriteLineAsync("Enter actor's last name: ");
-            string lastName = Console.ReadLine();
+            string lastName = IfTextLengthLessThan256(Console.ReadLine());
 
             var actor = new Actor()
             {
@@ -139,12 +144,12 @@ namespace SakilaConsoleApp.Handlers
                 {
                     case 1:
                         await Console.Out.WriteLineAsync("Enter updated actor's first name: ");
-                        string firstName = Console.ReadLine();
+                        string firstName = IfTextLengthLessThan256(Console.ReadLine());
                         actor.FirstName = firstName;
                         break;
                     case 2:
                         await Console.Out.WriteLineAsync("Enter updated actor's last name: ");
-                        string lastName = Console.ReadLine();
+                        string lastName = IfTextLengthLessThan256(Console.ReadLine());
                         actor.LastName = lastName;
                         break;
                     case 3:
@@ -178,6 +183,44 @@ namespace SakilaConsoleApp.Handlers
             await Console.Out.WriteLineAsync($"The actor {actor.Id}, {actor.FirstName} {actor.LastName} deleted successfully.");
             Console.WriteLine();
         }
+        private async Task ConnectActorAndFilm()
+        {
+            Console.WriteLine("Enter ID of the actor you want to connect: ");
+            short actorId = VerifyShortInput(Console.ReadLine());
+
+            Actor actor = await _actorRepository.ReadAsync(actorId);
+            if (actor == null)
+            {
+                Console.WriteLine($"An actor with ID {actorId} not found.");
+                return;
+            }
+
+            Console.WriteLine("Enter ID of the film you want to connect: ");
+            short filmId = VerifyShortInput(Console.ReadLine());
+
+            Film film = await _filmRepository.ReadAsync(filmId);
+            if (film == null)
+            {
+                Console.WriteLine($"A film with ID {filmId} not found.");
+                return;
+            }
+
+            if (!actor.Films.Any(f => f.Id == filmId)) // tikrina gal aktorius jau yra tam filme
+            {
+                actor.Films.Add(film);
+            }
+
+            if (!film.Actors.Any(a => a.Id == actorId)) // tikrina, gal filmas jau priskirtas tam aktoriui
+            {
+                film.Actors.Add(actor);
+            }
+
+            await _actorRepository.UpdateAsync(actor);
+            await _filmRepository.UpdateAsync(film);
+
+
+        }
+
 
         public bool continueInActorsPage()
         {
@@ -197,6 +240,30 @@ namespace SakilaConsoleApp.Handlers
                 }
             }
         }
-
+        private string IfTextLengthLessThan256(string input)
+        {
+            if (input.Length <= 255)
+            {
+                return input;
+            }
+            else
+            {
+                Console.WriteLine("Your text length exceeds 255 characters. Please enter a shorter text.");
+                return IfTextLengthLessThan256(Console.ReadLine());
+            }
+        }
+        private short VerifyShortInput(string input)
+        {
+            short releaseYear;
+            if (short.TryParse(input, out releaseYear))
+            {
+                return releaseYear;
+            }
+            else
+            {
+                Console.WriteLine("Invalid input. Please enter a valid short integer.");
+                return VerifyShortInput(Console.ReadLine());
+            }
+        }
     }
 }

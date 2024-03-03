@@ -1,5 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace DataAccess.Entities
 {
@@ -37,6 +37,10 @@ namespace DataAccess.Entities
 
         [Column(name: "replacement_cost")]
         public decimal ReplacementCost { get; set; }
+        [Column(name: "rating")]
+        public string Rating { get; set; }
+        [Column(name: "special_features")]
+        public string SpecialFeatures { get; set; }
 
         [Column(name: "last_update")]
         public DateTime LastUpdate { get; set; }
@@ -48,5 +52,6 @@ namespace DataAccess.Entities
 
             return $"Film ID: {Id,-5} | Title: {Title,-20} | Release Year: {ReleaseYear,-4} | Description: {filmSummary}";
         }
+
     }
 }
